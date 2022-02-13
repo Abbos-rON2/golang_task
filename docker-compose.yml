@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+    rabbitmq:   
+        image: rabbitmq:3.8-management-alpine
+        environment:
+            - RABBITMQ_DEFAULT_USER=admin
+            - RABBITMQ_DEFAULT_PASS=admin
+        ports:
+            # AMQP protocol port
+            - '5672:5672'
+            # HTTP management UI
+            - '15672:15672'
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:15672"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+    server:
+        ports:
+            - "5000:5000"
+        build:
+            context: ./server
+            dockerfile: ./Dockerfile
+        restart: on-failure
+        depends_on:
+            - rabbitmq
+    client:
+        ports:
+            - "80:80"
+        build:
+            context: ./client
+            dockerfile: ./Dockerfile
+        restart: on-failure
+        depends_on:
+            - rabbitmq
+
