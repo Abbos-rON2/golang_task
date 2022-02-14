@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -12,7 +12,7 @@ import (
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Panicf("%s: %s", msg, err)
+		fmt.Printf("%s: %s", msg, err)
 	}
 }
 
@@ -53,11 +53,11 @@ func Worker(url string, ch *amqp.Channel) {
 
 		resp, err := http.Get(url)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		resp.Body.Close()
 

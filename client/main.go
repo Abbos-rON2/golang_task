@@ -4,29 +4,40 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang_task_client/models"
-	"log"
 	"net/http"
+	"sync"
 
 	"github.com/streadway/amqp"
 )
 
+type Action struct {
+	data string
+	cond *sync.Cond
+}
+
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		fmt.Printf("%s: %s", msg, err)
 	}
 }
 
 func GetAction(w http.ResponseWriter, req *http.Request) {
+	action.cond.L.Lock()
+	for action.data == "" {
+		action.cond.Wait()
+	}
 	fmt.Fprintf(w, "%v", action.data)
+	action.cond.L.Unlock()
 }
 
 var action Action
 
-type Action struct {
-	data string
-}
-
 func main() {
+	action = Action{
+		data: "",
+		cond: sync.NewCond(&sync.Mutex{}),
+	}
+
 	conn, err := amqp.Dial("amqp://admin:admin@rabbitmq:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -81,9 +92,8 @@ func main() {
 			var entity models.Response
 
 			_ = json.Unmarshal(d.Body, &entity)
-			if entity.Action != "" {
-				action.data = entity.Action
-			}
+			action.data = entity.Action
+			action.cond.Broadcast()
 			fmt.Println("Recieved", entity.Action)
 		}
 	}()
